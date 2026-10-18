@@ -8,8 +8,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 static RESET_PENDING: AtomicBool = AtomicBool::new(false);
 use std::sync::Mutex;
 use std::time::Duration;
+use std::sync::OnceLock;
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
-use tauri::tray::TrayIconBuilder;
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition};
 use tauri_plugin_autostart::MacosLauncher;
 
@@ -48,6 +49,16 @@ fn set_fullscreen_autohide(enabled: bool) {
     AUTOHIDE.store(enabled, Ordering::Relaxed);
 }
 
+static AUTOSTART_ITEM: OnceLock<CheckMenuItem<tauri::Wry>> = OnceLock::new();
+
+/// 前端把「几个任务在进行」推给托盘 tooltip
+#[tauri::command]
+fn set_tray_tooltip(app: AppHandle, text: String) {
+    if let Some(tray) = app.tray_by_id("main") {
+        let _ = tray.set_tooltip(Some(text));
+    }
+}
+
 /// 前端挂载后调用：一次性读取并清除「待重置」标记
 #[tauri::command]
 fn take_reset_hidden() -> bool {
@@ -56,11 +67,22 @@ fn take_reset_hidden() -> bool {
 
 #[tauri::command]
 fn set_autostart(app: AppHandle, enabled: bool) {
+    apply_autostart(&app, enabled, true);
+}
+
+/// 写系统自启状态；from_frontend=false 表示来自托盘点击（要回传前端刷新设置）
+fn apply_autostart(app: &AppHandle, enabled: bool, from_frontend: bool) {
     use tauri_plugin_autostart::ManagerExt;
     let manager = app.autolaunch();
     let current = manager.is_enabled().unwrap_or(false);
     if current != enabled {
         let _ = if enabled { manager.enable() } else { manager.disable() };
+    }
+    if let Some(item) = AUTOSTART_ITEM.get() {
+        let _ = item.set_checked(enabled);
+    }
+    if !from_frontend {
+        let _ = app.emit("buddy://autostart", enabled);
     }
 }
 
@@ -223,17 +245,51 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     };
 
     let toggle = MenuItem::with_id(app, "toggle", "显示 / 隐藏", true, None::<&str>)?;
+    let settings = MenuItem::with_id(app, "settings", "设置…", true, None::<&str>)?;
     let auto = CheckMenuItem::with_id(app, "autostart", "开机自启", true, autostart_on, None::<&str>)?;
+    let version = MenuItem::with_id(
+        app,
+        "version",
+        format!("Buddy {}", app.package_info().version),
+        false,
+        None::<&str>,
+    )?;
     let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
     let menu = Menu::with_items(
         app,
-        &[&toggle, &auto, &PredefinedMenuItem::separator(app)?, &quit],
+        &[
+            &toggle,
+            &settings,
+            &auto,
+            &PredefinedMenuItem::separator(app)?,
+            &version,
+            &quit,
+        ],
     )?;
+    let _ = AUTOSTART_ITEM.set(auto.clone());
 
-    let mut builder = TrayIconBuilder::new()
+    let mut builder = TrayIconBuilder::with_id("main")
         .menu(&menu)
         .tooltip("Buddy")
         .show_menu_on_left_click(false)
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                let app = tray.app_handle();
+                if let Some(win) = app.get_webview_window("main") {
+                    if win.is_visible().unwrap_or(false) {
+                        let _ = win.hide();
+                    } else {
+                        let _ = win.show();
+                        let _ = win.set_focus();
+                    }
+                }
+            }
+        })
         .on_menu_event(|app, event| match event.id.as_ref() {
             "toggle" => {
                 if let Some(win) = app.get_webview_window("main") {
@@ -244,11 +300,17 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
                     }
                 }
             }
+            "settings" => {
+                if let Some(win) = app.get_webview_window("main") {
+                    let _ = win.show();
+                    let _ = win.set_focus();
+                }
+                let _ = app.emit("buddy://open-settings", ());
+            }
             "autostart" => {
                 use tauri_plugin_autostart::ManagerExt;
-                let manager = app.autolaunch();
-                let on = manager.is_enabled().unwrap_or(false);
-                let _ = if on { manager.disable() } else { manager.enable() };
+                let on = app.autolaunch().is_enabled().unwrap_or(false);
+                apply_autostart(app, !on, false);
             }
             "quit" => app.exit(0),
             _ => {}
@@ -274,7 +336,8 @@ pub fn run() {
             set_fullscreen_autohide,
             quit_app,
             take_reset_hidden,
-            set_autostart
+            set_autostart,
+            set_tray_tooltip
         ])
         .setup(|app| {
             if let Some(win) = app.get_webview_window("main") {

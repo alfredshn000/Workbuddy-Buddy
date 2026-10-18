@@ -7,6 +7,31 @@ export function inTauri(): boolean {
 
 export type Unlisten = () => void;
 
+/** 托盘 tooltip（显示当前活跃任务数） */
+export async function setTrayTooltip(text: string): Promise<void> {
+  if (!inTauri()) return;
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    await invoke('set_tray_tooltip', { text });
+  } catch {
+    /* 托盘未就绪时忽略 */
+  }
+}
+
+/** 托盘点了「设置…」 */
+export async function onOpenSettings(handler: () => void): Promise<Unlisten> {
+  if (!inTauri()) return () => {};
+  const { listen } = await import('@tauri-apps/api/event');
+  return listen('buddy://open-settings', () => handler());
+}
+
+/** 托盘改了「开机自启」，回传真实状态 */
+export async function onAutostartChanged(handler: (enabled: boolean) => void): Promise<Unlisten> {
+  if (!inTauri()) return () => {};
+  const { listen } = await import('@tauri-apps/api/event');
+  return listen<boolean>('buddy://autostart', (e) => handler(e.payload));
+}
+
 /** 排障：启动时带 BUDDY_RESET_HIDDEN=1，前端挂载后主动取一次标记 */
 export async function takeResetHidden(): Promise<boolean> {
   if (!inTauri()) return false;

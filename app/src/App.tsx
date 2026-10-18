@@ -21,6 +21,9 @@ import {
   setFullscreenAutohide,
   takeResetHidden,
   setAutostart,
+  setTrayTooltip,
+  onOpenSettings,
+  onAutostartChanged,
 } from './bridge';
 
 const TASK_POOL: TaskState[] = ['working', 'working', 'working', 'attention', 'stalled', 'completed'];
@@ -60,9 +63,13 @@ export default function App() {
   const [hidden, setHidden] = useState<string[]>(() => loadHidden());
   /** 只忽略「这一条」气泡，不写设置、不影响后续提示 */
   const [dismissedBubble, setDismissedBubble] = useState<string | null>(null);
+  const [bubbleOpen, setBubbleOpen] = useState(false);
 
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
   const [bubbleAnchor, setBubbleAnchor] = useState<{ x: number; y: number } | null>(null);
+
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
 
   const timers = useRef<number[]>([]);
   const stageWrapRef = useRef<HTMLDivElement | null>(null);
@@ -209,6 +216,35 @@ export default function App() {
       saveHidden([]);
     });
   }, []);
+
+  // 托盘 tooltip：同步活跃任务数
+  useEffect(() => {
+    if (!live) return;
+    const n = activeTasks.length;
+    void setTrayTooltip(n > 0 ? `Buddy · ${n} 个任务` : 'Buddy · 空闲');
+  }, [live, activeTasks.length]);
+
+  // 托盘：设置… / 开机自启回传
+  useEffect(() => {
+    if (!inTauri()) return;
+    let undo: (() => void) | undefined;
+    let undoAuto: (() => void) | undefined;
+    onOpenSettings(() => {
+      setPanelOpen(false);
+      setSettingsOpen(true);
+    }).then((u) => {
+      undo = u;
+    });
+    onAutostartChanged((enabled) => {
+      updateSettings({ ...settingsRef.current, launchAtLogin: enabled });
+    }).then((u) => {
+      undoAuto = u;
+    });
+    return () => {
+      undo?.();
+      undoAuto?.();
+    };
+  }, [updateSettings]);
 
   /* ---------------- 自动演示（仅浏览器） ---------------- */
   useEffect(() => {
@@ -390,12 +426,21 @@ export default function App() {
     return { text: null, tone: 'normal' };
   }, [activeTasks, state, settings.bubbleEnabled]);
 
-  // 提示消失后重置「已忽略」，下次同一文案再出现仍然显示
-  useEffect(() => {
-    if (!bubble.text) setDismissedBubble(null);
-  }, [bubble.text]);
+  // 状态变化 → 重新弹气泡；6 秒后自动消失。× 只压制「这一轮」的状态
+  const bubbleKey = useMemo(
+    () => `${state}|${activeTasks.map((t) => `${t.id}:${t.state}`).join(',')}`,
+    [state, activeTasks],
+  );
 
-  const bubbleText = bubble.text === dismissedBubble ? null : bubble.text;
+  useEffect(() => {
+    if (!bubble.text) return;
+    setBubbleOpen(true);
+    const t = window.setTimeout(() => setBubbleOpen(false), 6000);
+    return () => window.clearTimeout(t);
+  }, [bubbleKey, bubble.text]);
+
+  const bubbleText = bubbleOpen && bubble.text && dismissedBubble !== bubbleKey ? bubble.text : null;
+
 
   return (
     <div
