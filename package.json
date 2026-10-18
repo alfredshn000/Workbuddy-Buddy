@@ -1,0 +1,24 @@
+{
+  "name": "workbuddy-buddy",
+  "version": "0.1.0",
+  "description": "WorkBuddy 的桌面像素助手：盯任务、看积分、报卡住",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "probe": "node probe/probe.mjs",
+    "probe:watch": "node probe/probe.mjs --watch=1000",
+    "probe:json": "node probe/probe.mjs --json",
+    "dev": "npm --prefix app run dev",
+    "build:app": "npm --prefix app run tauri build -- --bundles nsis",
+    "package:portable": "node scripts/package-portable.mjs"
+  },
+  "keywords": [
+    "workbuddy",
+    "desktop-pet",
+    "pixel-art",
+    "tauri"
+  ]
+}

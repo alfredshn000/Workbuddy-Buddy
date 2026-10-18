@@ -1,0 +1,16 @@
+{
+  "identifier": "default",
+  "description": "Buddy 主窗口能力：事件监听、窗口拖动与位置设置",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "core:window:allow-start-dragging",
+    "core:window:allow-set-position",
+    "core:window:allow-set-always-on-top",
+    "core:event:default",
+    "core:window:allow-set-size",
+    "core:window:allow-current-monitor"
+  ]
+}

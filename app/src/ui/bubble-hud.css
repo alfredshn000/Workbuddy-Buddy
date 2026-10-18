@@ -1,0 +1,131 @@
+/* ============ 气泡（主球上方工具提示） ============ */
+
+.bubble-wrap {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -100%);
+  padding-bottom: 6px; /* 箭头与球体之间的间隙 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  z-index: 7;
+}
+
+.bubble {
+  padding: 6px 10px;
+  background: #F4F6F8;
+  border: 1px solid #20262D;
+  border-radius: 8px;
+  animation: bubbleIn 120ms ease-out;
+}
+
+.bubble-text {
+  display: block;
+  max-width: 180px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #1A2027;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bubble-arrow {
+  width: 0;
+  height: 0;
+  margin-top: -1px;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid #F4F6F8;
+}
+
+/* 警示态（卡住 / 待确认） */
+.bubble-warn .bubble {
+  background: #F7E3C0;
+  border-left: 3px solid #F0A93A;
+}
+
+.bubble-warn .bubble-arrow {
+  border-top-color: #F7E3C0;
+}
+
+@keyframes bubbleIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble { animation: none; }
+}
+
+/* ============ HUD 统计条（直接压在深色底上） ============ */
+
+.bhud {
+  display: flex;
+  align-items: flex-start;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #B9C4CF;
+}
+
+.bhud-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.bhud-item + .bhud-item {
+  margin-left: 14px;
+  padding-left: 14px;
+  border-left: 1px solid #22282F;
+}
+
+.bhud-label {
+  font-size: 10px;
+  line-height: 1;
+  color: #7C8792;
+}
+
+.bhud-value {
+  font-size: 13px;
+  line-height: 1;
+  color: #B9C4CF;
+}
+
+.bhud-unit {
+  margin-left: 1px;
+  font-size: 10px;
+  color: #7C8792;
+}
+
+
+/* 气泡关闭按钮 */
+.bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: auto;
+}
+
+.bubble-close {
+  border: none;
+  background: transparent;
+  color: #a1a1a6;
+  font-size: 14px;
+  line-height: 1;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  flex: 0 0 auto;
+}
+
+.bubble-close:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #1d1d1f;
+}

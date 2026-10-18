@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Buddy 球体原型 v3 · 渲染素材版</title>
+<style>
+  :root {
+    --plus: #3FD68A;
+    --minus: #3FC8E8;
+    --glow: rgba(79,216,238,.45);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; background: #10141A; color: #D6DBE0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+
+  .stage { position: relative; width: 260px; height: 250px; }
+
+  .bloom {
+    position: absolute; left: 50%; top: 50%;
+    width: 230px; height: 230px; margin: -115px 0 0 -115px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, var(--glow) 0%, rgba(0,0,0,0) 62%);
+    filter: blur(12px); z-index: 0; pointer-events: none;
+    transition: background .4s ease;
+  }
+
+  .ground {
+    position: absolute; left: 50%; top: 177px;
+    width: 124px; height: 24px; transform: translateX(-50%);
+    background: radial-gradient(ellipse at 50% 50%, rgba(0,0,0,.6) 0%, rgba(0,0,0,.3) 44%, rgba(0,0,0,0) 72%);
+    filter: blur(7px); z-index: 0;
+  }
+  .ground.near {
+    top: 170px; width: 86px; height: 14px;
+    background: radial-gradient(ellipse at 50% 50%, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 70%);
+    filter: blur(3px);
+  }
+
+  .buddy {
+    position: absolute; left: 50%; top: 50%;
+    width: 200px; height: 200px; margin: -100px 0 0 -100px;
+    z-index: 2; transition: opacity .16s ease;
+    user-select: none; -webkit-user-drag: none;
+  }
+
+  .beads { position: absolute; inset: 0; pointer-events: none; }
+  .bead {
+    position: absolute; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px;
+    border-radius: 50%; background: #fff;
+    box-shadow: 0 0 6px 2px var(--bead, #9BE9F5), 0 0 13px var(--bead, #9BE9F5);
+    transition: opacity .2s linear;
+  }
+
+  .sats { position: absolute; inset: 0; pointer-events: none; }
+  .sat {
+    position: absolute; width: 0; height: 0; overflow: visible;
+    transition: opacity .28s ease;
+  }
+  .sat .body {
+    position: absolute; left: -28px; top: -28px; width: 56px; height: 56px;
+    transition: opacity .28s ease;
+    pointer-events: auto; cursor: pointer;
+  }
+  .sat .body img { width: 100%; height: 100%; display: block; user-select: none; -webkit-user-drag: none; }
+  .sat .halo {
+    position: absolute; left: 50%; top: 47%; width: 64px; height: 64px;
+    transform: translate(-50%, -50%); border-radius: 50%;
+    background: radial-gradient(circle, var(--sg) 0%, rgba(0,0,0,0) 62%);
+    opacity: .7; pointer-events: none; transition: background .3s ease;
+  }
+  .sat .dot {
+    position: absolute; left: 50%; top: 47%; width: 8px; height: 8px;
+    transform: translate(-50%, -50%); border-radius: 50%;
+    background: var(--sc); box-shadow: 0 0 6px var(--sc), 0 0 13px var(--sg);
+    pointer-events: none; transition: background .3s ease;
+  }
+  .sat .tag {
+    position: absolute; left: 50%; bottom: 30px; transform: translateX(-50%);
+    font: 600 12px/1 ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums;
+    color: var(--c); text-shadow: 0 0 9px var(--c), 0 1px 2px rgba(0,0,0,.75);
+    white-space: nowrap; pointer-events: none;
+  }
+
+  .floats { position: absolute; inset: 0; pointer-events: none; z-index: 9; }
+  .slot { position: absolute; left: 50%; top: 44px; transform: translateX(-50%) translateY(var(--stack, 0px)); transition: transform .18s ease-out; }
+  .num {
+    display: block; font: 600 15px/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums; color: var(--c);
+    text-shadow: 0 0 10px var(--c), 0 1px 2px rgba(0,0,0,.7); white-space: nowrap;
+  }
+
+  .row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 460px; }
+  button {
+    border: 1px solid #2C343C; background: #1A2027; color: #C6CDD4;
+    font-size: 12px; padding: 7px 12px; border-radius: 8px; cursor: pointer;
+    transition: background .15s, border-color .15s;
+  }
+  button:hover { background: #232B33; border-color: #3A444E; }
+  button.plus { color: var(--plus); border-color: rgba(63,214,138,.35); }
+  button.minus { color: var(--minus); border-color: rgba(63,200,232,.35); }
+  .note { font-size: 11.5px; line-height: 1.85; color: #6F7A85; text-align: center; max-width: 480px; }
+  .note b { color: #9AA5B0; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <div class="bloom" id="bloom"></div>
+  <div class="ground"></div>
+  <div class="ground near"></div>
+  <img class="buddy" id="buddy" src="" alt="buddy">
+  <div class="beads" id="beads"></div>
+  <div class="sats" id="sats"></div>
+  <div class="floats" id="floats"></div>
+</div>
+
+<div class="row">
+  <button class="minus" onclick="useCredit()">消耗积分 −</button>
+  <button class="plus" onclick="gainCredit()">新增积分 +</button>
+</div>
+
+<div class="row">
+  <button onclick="setState('idle')">01 待命</button>
+  <button onclick="setState('working')">02 工作中</button>
+  <button onclick="setState('attention')">03 待确认</button>
+  <button onclick="setState('stalled')">04 卡住</button>
+  <button onclick="setState('completed')">05 完成</button>
+  <button onclick="setState('offline')">06 断开</button>
+</div>
+
+<div class="row">
+  <button onclick="addTask()">+ 开始一个任务</button>
+  <button onclick="removeTask()">− 结束一个任务</button>
+  <button onclick="clearTasks()">全部清空</button>
+</div>
+
+<div class="note">
+  <b>卫星</b> 只在有任务时出现，材质（11 种：珠光/铬/磨砂玻璃/陶瓷/碳黑/琥珀/紫铜/水球/拉丝金属/大理石/砂岩）、大小、状态均随机；点击卫星切换状态；超过 3 个显示 +N。
+  <br><b>积分</b> 有任务时消耗显示在对应卫星上，无任务时显示在主球上方；新增积分固定显示在主球上方。
+</div>
+
+<script>
+const RING_PATH = __RING_PATH__;          // 512 空间下的环投影采样点 [x, y, near]
+const IMG = 200, SRC = 512, SCALE = IMG / SRC;
+const IMG_ORIGIN = { x: 30, y: 25 };      // 图片在 stage 内的左上角
+
+const STATE_IMG = __STATE_IMAGES__;
+const SAT_IMG = __SAT_IMAGES__;
+const SAT_MATS = Object.keys(SAT_IMG);
+const STATE_COLOR = {
+  idle: '#9FB6C2', working: '#4FD8EE', attention: '#F0A93A',
+  stalled: '#F2455C', completed: '#3FD68A', offline: '#8C949B'
+};
+const STATE_GLOW = {
+  idle: 'rgba(47,168,191,.20)', working: 'rgba(79,216,238,.42)',
+  attention: 'rgba(240,169,58,.45)', stalled: 'rgba(242,69,92,.50)',
+  completed: 'rgba(63,214,138,.42)', offline: 'rgba(0,0,0,0)'
+};
+
+const buddy = document.getElementById('buddy');
+const bloom = document.getElementById('bloom');
+const satsBox = document.getElementById('sats');
+const floats = document.getElementById('floats');
+const beadsBox = document.getElementById('beads');
+
+/* ---------- 主球状态 ---------- */
+let mainState = 'working';
+
+function setState(name) {
+  if (!STATE_IMG[name]) return;
+  mainState = name;
+  if (!buddy.getAttribute('src')) {
+    buddy.src = STATE_IMG[name];
+  } else {
+    buddy.style.opacity = '0';
+    setTimeout(() => { buddy.src = STATE_IMG[name]; buddy.style.opacity = '1'; }, 140);
+  }
+  bloom.style.background = `radial-gradient(circle at 50% 50%, ${STATE_GLOW[name]} 0%, rgba(0,0,0,0) 62%)`;
+  beads.forEach((b) => {
+    b.el.style.setProperty('--bead', STATE_COLOR[name]);
+  });
+}
+
+/* ---------- 环上光点 ---------- */
+const BEAD_COUNT = 3;
+const beads = [];
+for (let i = 0; i < BEAD_COUNT; i++) {
+  const el = document.createElement('div');
+  el.className = 'bead';
+  beadsBox.appendChild(el);
+  beads.push({ el, t: i / BEAD_COUNT });
+}
+
+function pointAt(t) {
+  const n = RING_PATH.length;
+  const f = ((t % 1) + 1) % 1 * n;
+  const i0 = Math.floor(f), i1 = (i0 + 1) % n;
+  const k = f - i0;
+  const a = RING_PATH[i0], b = RING_PATH[i1];
+  return {
+    x: IMG_ORIGIN.x + (a[0] + (b[0] - a[0]) * k) * SCALE,
+    y: IMG_ORIGIN.y + (a[1] + (b[1] - a[1]) * k) * SCALE,
+    near: (k < 0.5 ? a[2] : b[2]) === 1
+  };
+}
+
+/* ---------- 多任务卫星 ---------- */
+const SAT_STATES = ['working', 'attention', 'completed', 'stalled'];
+const MAX_SHOWN = 3;
+let tasks = [];
+let clipExtra = 0;
+
+function layoutTasks() {
+  const n = tasks.length;
+  tasks.forEach((t, i) => {
+    if (i >= MAX_SHOWN) { t.el.style.display = 'none'; return; }
+    t.el.style.display = 'block';
+    // 重新分配相位，保证可见的几颗不重叠
+    t.phase = (Math.PI * 2 / Math.max(1, Math.min(n, MAX_SHOWN))) * i;
+    t.radius = 96 + (i % 2) * 8;
+  });
+  clipExtra = Math.max(0, n - MAX_SHOWN);
+  renderBadge();
+}
+
+let badgeEl = null;
+function renderBadge() {
+  if (!badgeEl) {
+    badgeEl = document.createElement('div');
+    badgeEl.style.cssText = 'position:absolute;right:14px;top:40px;font:600 11px/1 ui-monospace,monospace;' +
+      'color:#C9D2DA;background:rgba(28,35,43,.92);border:1px solid #38424C;border-radius:999px;' +
+      'padding:3px 7px;z-index:8;display:none';
+    document.getElementById('stage').appendChild(badgeEl);
+  }
+  badgeEl.style.display = clipExtra > 0 ? 'block' : 'none';
+  badgeEl.textContent = `+${clipExtra}`;
+}
+
+function addTask() {
+  if (tasks.length >= 6) return;
+  const mat = SAT_MATS[Math.floor(Math.random() * SAT_MATS.length)];
+  const pool = ['working', 'working', 'working', 'attention', 'stalled', 'completed'];
+  const state = pool[Math.floor(Math.random() * pool.length)];
+  const size = 0.86 + Math.random() * 0.30;
+  const el = document.createElement('div');
+  el.className = 'sat';
+  el.innerHTML = `<div class="body"><img src="${SAT_IMG[mat]}" alt=""><div class="halo"></div><div class="dot"></div></div>`;
+  el.style.opacity = '0';
+  satsBox.appendChild(el);
+  const t = { state, el, phase: 0, radius: 96, grow: 0, size };
+  paintSat(t);
+  el.querySelector('.body').addEventListener('click', (e) => {
+    e.stopPropagation();
+    cycleSatState(t);
+  });
+  tasks.push(t);
+  layoutTasks();
+  requestAnimationFrame(() => { el.style.opacity = '1'; });
+}
+
+function removeTask() {
+  const t = tasks.pop();
+  if (!t) return;
+  t.el.style.opacity = '0';
+  t.grow = -0.001;
+  setTimeout(() => t.el.remove(), 300);
+  layoutTasks();
+}
+
+function clearTasks() { while (tasks.length) removeTask(); }
+
+function paintSat(t) {
+  const c = STATE_COLOR[t.state] || '#9FB6C2';
+  const g = STATE_GLOW[t.state] || 'rgba(0,0,0,0)';
+  t.el.style.setProperty('--sc', c);
+  t.el.style.setProperty('--sg', g);
+}
+
+function cycleSatState(t) {
+  const i = SAT_STATES.indexOf(t.state);
+  t.state = SAT_STATES[(i + 1) % SAT_STATES.length];
+  paintSat(t);
+}
+
+/* ---------- 积分浮动 ---------- */
+const COLOR = { plus: '#3FD68A', minus: '#3FC8E8' };
+const rand = (a, b) => +(a + Math.random() * (b - a)).toFixed(1);
+const fmt = (v) => (v >= 100 ? String(Math.round(v)) : v.toFixed(1));
+
+function animateNumber(node, duration = 1740) {
+  return node.animate([
+    { opacity: 0, transform: 'translateY(6px) scale(.86)', offset: 0 },
+    { opacity: 1, transform: 'translateY(0) scale(1.06)', offset: .05 },
+    { opacity: 1, transform: 'translateY(0) scale(1)', offset: .085 },
+    { opacity: 1, transform: 'translateY(0) scale(1)', offset: .55 },
+    { opacity: 0, transform: 'translateY(-18px) scale(1)', offset: 1 }
+  ], { duration, easing: 'ease-out', fill: 'forwards' });
+}
+
+function spawnMain(kind, amount) {
+  const slots = [...floats.children];
+  const slot = document.createElement('div');
+  slot.className = 'slot';
+  const num = document.createElement('span');
+  num.className = 'num';
+  num.style.setProperty('--c', COLOR[kind]);
+  num.textContent = (kind === 'plus' ? '+' : '-') + fmt(amount);
+  slot.appendChild(num);
+  floats.appendChild(slot);
+  slots.forEach((old, i) => old.style.setProperty('--stack', `${-(slots.length - i) * 18}px`));
+  while (floats.children.length > 3) {
+    const first = floats.firstElementChild;
+    first.querySelector('.num').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' });
+    first.remove();
+  }
+  const anim = animateNumber(num);
+  anim.onfinish = () => slot.remove();
+}
+
+function spawnSat(t, amount) {
+  const tag = document.createElement('div');
+  tag.className = 'tag';
+  tag.style.setProperty('--c', COLOR.minus);
+  tag.textContent = '-' + fmt(amount);
+  t.el.appendChild(tag);
+  // 卫星的 tag 在卫星局部坐标里，跟着卫星一起动
+  const anim = tag.animate([
+    { opacity: 0, transform: 'translateX(-50%) translateY(4px) scale(.9)' },
+    { opacity: 1, transform: 'translateX(-50%) translateY(0) scale(1)', offset: .08 },
+    { opacity: 1, transform: 'translateX(-50%) translateY(0) scale(1)', offset: .55 },
+    { opacity: 0, transform: 'translateX(-50%) translateY(-14px) scale(1)' }
+  ], { duration: 1740, easing: 'ease-out', fill: 'forwards' });
+  anim.onfinish = () => tag.remove();
+}
+
+function useCredit() {
+  const visible = tasks.filter((t) => t.el.style.display !== 'none');
+  const amt = rand(0.2, 6);
+  if (visible.length) spawnSat(visible[Math.floor(Math.random() * visible.length)], amt);
+  else spawnMain('minus', amt);
+}
+function gainCredit() { spawnMain('plus', rand(1, 40)); }
+
+/* ---------- 轨道 ---------- */
+const SPIN_MS = 14000;
+const t0 = performance.now();
+let last = 0;
+
+let prevT = 0;
+function tick(now) {
+  const dt = prevT ? Math.min(64, now - prevT) : 16;
+  prevT = now;
+  const ang = ((now - t0) / SPIN_MS) * Math.PI * 2;
+
+  beads.forEach((b) => {
+    const p = pointAt(b.t + ang / (Math.PI * 2));
+    b.el.style.left = p.x + 'px';
+    b.el.style.top = p.y + 'px';
+    b.el.style.opacity = p.near ? 1 : 0;   // near 侧才显示，远侧被球挡住
+    b.el.style.zIndex = p.near ? 3 : 1;
+  });
+
+  tasks.forEach((t, i) => {
+    if (t.el.style.display === 'none') return;
+    const th = ang * 0.55 + t.phase;
+    const x = Math.cos(th) * t.radius;
+    const y = Math.sin(th) * t.radius * 0.30;
+    const near = y > 0;
+    t.el.style.left = (130 + x) + 'px';
+    t.el.style.top = (125 + y) + 'px';
+    t.el.style.zIndex = near ? 3 : 1;
+    if (t.grow !== undefined && t.grow >= 0 && t.grow < 1) t.grow = Math.min(1, t.grow + dt / 260);
+    const g = t.grow === undefined ? 1 : (t.grow < 0 ? Math.max(0, t.grow + dt / 240) : t.grow);
+    const eased = g * g * (3 - 2 * g);
+    const base = (near ? 1 : 0.86) * (0.25 + 0.75 * eased) * (t.size || 1);
+    t.el.querySelector('.body').style.transform = `scale(${base.toFixed(3)})`;
+  });
+
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+/* ---------- 初始 ---------- */
+setState('working');
+setTimeout(addTask, 700);
+setTimeout(addTask, 1100);
+setTimeout(addTask, 1500);
+setTimeout(() => useCredit(), 2200);
+</script>
+</body>
+</html>

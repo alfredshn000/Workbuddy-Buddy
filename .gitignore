@@ -1,0 +1,35 @@
+# 依赖与构建产物
+node_modules/
+dist/
+build/
+target/
+release/
+*.tsbuildinfo
+
+# 探针运行时状态
+probe/state/
+.probe-state/
+
+# 调试截图与临时文件（开发过程中的窗口截图，不进仓库）
+.shot-*.png
+.win-capture.png
+.tray-capture.png
+.tmp*
+
+# 项目记忆与本地编辑器配置
+.workbuddy/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# 环境变量 / 密钥
+.env
+.env.local
+
+# 设计稿原图（用户素材，不随代码发布）
+buddy形象设计.jpg
+
+# 系统垃圾
+*.log
+.DS_Store
+Thumbs.db

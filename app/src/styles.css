@@ -1,0 +1,373 @@
+:root {
+  --plus: #3FD68A;
+  --minus: #3FC8E8;
+  color-scheme: dark;
+  /* Apple 风格字体栈：优先 SF Pro / 苹方，逐级回退 */
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "PingFang SC", "Helvetica Neue", "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #10141A;
+  color: #D6DBE0;
+  font-family: var(--font-ui);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ---------- 舞台 ---------- */
+.stage {
+  position: relative;
+  width: 260px;
+  height: 250px;
+  transform: scale(calc(var(--fit, 1) * var(--buddy-scale, 1) * var(--buddy-size, 1)));
+  transform-origin: center center;
+  filter: brightness(var(--buddy-bright, 1));
+  opacity: var(--buddy-alpha, 1);
+}
+
+.bloom {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 230px;
+  height: 230px;
+  margin: -115px 0 0 -115px;
+  border-radius: 50%;
+  filter: blur(12px);
+  z-index: 0;
+  pointer-events: none;
+  transition: background 0.4s ease;
+}
+
+.ground {
+  position: absolute;
+  left: 50%;
+  top: 177px;
+  width: 124px;
+  height: 24px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.3) 44%, rgba(0, 0, 0, 0) 72%);
+  filter: blur(7px);
+  z-index: 0;
+}
+
+.ground.near {
+  top: 170px;
+  width: 86px;
+  height: 14px;
+  background: radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 70%);
+  filter: blur(3px);
+}
+
+.buddy {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 200px;
+  height: 200px;
+  margin: -100px 0 0 -100px;
+  z-index: 2;
+  transition: opacity 0.16s ease;
+  -webkit-user-drag: none;
+}
+
+/* ---------- 环上光点 ---------- */
+.beads {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.bead {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px 2px var(--bead, #9BE9F5), 0 0 13px var(--bead, #9BE9F5);
+  transition: opacity 0.2s linear;
+  will-change: transform;
+}
+
+/* ---------- 卫星 ---------- */
+.sats { position: absolute; inset: 0; pointer-events: none; }
+
+.sat {
+  position: absolute;
+  width: 0;
+  height: 0;
+  transition: opacity 0.28s ease;
+}
+
+.sat .body {
+  position: absolute;
+  left: -28px;
+  top: -28px;
+  width: 56px;
+  height: 56px;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: opacity 0.28s ease;
+}
+
+.sat .body img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  -webkit-user-drag: none;
+}
+
+.sat .halo {
+  position: absolute;
+  left: 50%;
+  top: 47%;
+  width: 64px;
+  height: 64px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--sg) 0%, rgba(0, 0, 0, 0) 62%);
+  opacity: 0.7;
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.sat .dot {
+  position: absolute;
+  left: 50%;
+  top: 47%;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--sc);
+  box-shadow: 0 0 6px var(--sc), 0 0 13px var(--sg, transparent);
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.sat-float {
+  position: absolute;
+  left: 0;
+  top: -34px;
+  transform: translateX(-50%);
+  font: 600 13px/1 ui-monospace, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: satFloat 1740ms ease-out forwards;
+}
+
+.sat-float.minus { color: var(--minus); text-shadow: 0 0 9px var(--minus), 0 1px 2px rgba(0, 0, 0, 0.75); }
+.sat-float.plus { color: var(--plus); text-shadow: 0 0 9px var(--plus), 0 1px 2px rgba(0, 0, 0, 0.75); }
+
+@keyframes satFloat {
+  0% { opacity: 0; transform: translateX(-50%) translateY(4px) scale(0.9); }
+  8% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  55% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-14px) scale(1); }
+}
+
+.badge {
+  position: absolute;
+  right: 14px;
+  top: 40px;
+  padding: 3px 7px;
+  font: 600 11px/1 ui-monospace, Menlo, monospace;
+  color: #C9D2DA;
+  background: rgba(28, 35, 43, 0.92);
+  border: 1px solid #38424C;
+  border-radius: 999px;
+  z-index: 8;
+}
+
+/* ---------- 主球积分浮动 ---------- */
+.floats {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9;
+}
+
+.slot {
+  position: absolute;
+  left: 50%;
+  top: 44px;
+}
+
+.num {
+  display: block;
+  font: 600 15px/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  animation: numFloat 1740ms ease-out forwards;
+}
+
+.num.minus { color: var(--minus); text-shadow: 0 0 10px var(--minus), 0 1px 2px rgba(0, 0, 0, 0.7); }
+.num.plus { color: var(--plus); text-shadow: 0 0 10px var(--plus), 0 1px 2px rgba(0, 0, 0, 0.7); }
+
+@keyframes numFloat {
+  0% { opacity: 0; transform: translateY(6px) scale(0.86); }
+  5% { opacity: 1; transform: translateY(0) scale(1.06); }
+  8.5% { opacity: 1; transform: translateY(0) scale(1); }
+  55% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-18px) scale(1); }
+}
+
+/* ---------- HUD 与调试控件 ---------- */
+.hud {
+  display: flex;
+  gap: 14px;
+  font: 500 12px/1 ui-monospace, Menlo, monospace;
+  color: #7C8792;
+}
+
+.total { color: #B9C4CF; }
+
+.row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 460px;
+}
+
+button {
+  border: 1px solid #2C343C;
+  background: #1A2027;
+  color: #C6CDD4;
+  font-size: 12px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+button:hover { background: #232B33; border-color: #3A444E; }
+button.minus { color: var(--minus); border-color: rgba(63, 200, 232, 0.35); }
+button.plus { color: var(--plus); border-color: rgba(63, 214, 138, 0.35); }
+button.on { border-color: #4FD8EE; color: #9FE7F5; }
+
+/* ---------- 无障碍：减少动态效果 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .num,
+  .sat-float {
+    animation: none !important;
+    opacity: 1;
+  }
+  .buddy,
+  .sat .body,
+  .sat .halo,
+  .sat .dot,
+  .bloom {
+    transition: none !important;
+  }
+  .bead {
+    transition: none !important;
+  }
+}
+
+/* ---------- 舞台外层（气泡 / 面板锚点） ---------- */
+.stage-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 球顶在 stage 内 25px 处，气泡贴这一点向上生长 */
+.bubble-slot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 25px;
+  height: 0;
+  z-index: 30;
+}
+
+.panel-slot {
+  position: absolute;
+  left: calc(100% - 36px);
+  top: 14px;
+  z-index: 40;
+}
+
+/* ---------- 桌面模式（Tauri 窗口内）：透明底、只留球 ---------- */
+body.live {
+  background: transparent;
+  overflow: hidden;
+}
+
+body.live .app {
+  gap: 0;
+  background: transparent;
+}
+
+body.live .stage-wrap {
+  cursor: pointer;
+}
+
+/* 气泡锚在球体顶部：放在 .stage 内，跟着球一起缩放与位移 */
+.stage .bubble-wrap {
+  top: 22px;
+  z-index: 30;
+}
+
+/* 桌面模式：球贴底部，上方留出气泡空间 */
+body.live .app {
+  height: 100%;
+  justify-content: flex-end;
+  padding-bottom: 4px;
+}
+
+/* 桌面模式：光标保持系统默认，不做手型/抓取提示 */
+
+/* 桌面模式：面板贴窗口右侧（相对视口，不是相对球），球让位 */
+body.live .panel-slot {
+  position: fixed;
+  left: auto;
+  right: 12px;
+  top: 48px;
+}
+
+body.live.expanded .stage-wrap {
+  transform: translateX(-132px);
+  transition: transform 180ms ease-out;
+}
+
+
+/* 气泡锚点：屏幕坐标定位，不参与球体缩放 */
+.bubble-anchor {
+  position: fixed;
+  width: 0;
+  height: 0;
+  z-index: 60;
+}
+
+.bubble-anchor .bubble-wrap {
+  top: 0;
+  transform: translate(-50%, -100%);
+}
+
+.stage .sat .body {
+  cursor: default;
+}
