@@ -19,6 +19,8 @@ import {
   hideWindow,
   quitApp,
   setFullscreenAutohide,
+  takeResetHidden,
+  setAutostart,
 } from './bridge';
 
 const TASK_POOL: TaskState[] = ['working', 'working', 'working', 'attention', 'stalled', 'completed'];
@@ -198,6 +200,16 @@ export default function App() {
     };
   }, [changeState, spawn]);
 
+  // 排障：启动时若带 BUDDY_RESET_HIDDEN，清空删除列表
+  useEffect(() => {
+    if (!inTauri()) return;
+    void takeResetHidden().then((pending) => {
+      if (!pending) return;
+      setHidden([]);
+      saveHidden([]);
+    });
+  }, []);
+
   /* ---------------- 自动演示（仅浏览器） ---------------- */
   useEffect(() => {
     if (!auto || live) return;
@@ -254,6 +266,12 @@ export default function App() {
     if (!live) return;
     void setFullscreenAutohide(settings.autoHideFullscreen);
   }, [live, settings.autoHideFullscreen]);
+
+  // 开机自启：设置里的开关直接写系统
+  useEffect(() => {
+    if (!live) return;
+    void setAutostart(settings.launchAtLogin);
+  }, [live, settings.launchAtLogin]);
 
   useEffect(() => {
     if (!live) return;
@@ -481,6 +499,11 @@ export default function App() {
             onClose={() => setSettingsOpen(false)}
             onHide={() => { void hideWindow(); }}
             onQuit={() => { void quitApp(); }}
+            hiddenCount={hidden.length}
+            onRestoreHidden={() => {
+              setHidden([]);
+              saveHidden([]);
+            }}
           />
         </div>
       )}

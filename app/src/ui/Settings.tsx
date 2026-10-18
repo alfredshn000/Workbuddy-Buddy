@@ -12,6 +12,10 @@ export interface SettingsProps {
   onHide?: () => void;
   /** 退出应用 */
   onQuit?: () => void;
+  /** 被删除（隐藏）的任务数量 */
+  hiddenCount?: number;
+  /** 恢复被删除的任务 */
+  onRestoreHidden?: () => void;
 }
 
 const SCALE_OPTIONS: ReadonlyArray<Settings['scale']> = [1, 2, 3];
@@ -78,7 +82,16 @@ function Slider({ label, value, min, max, step, suffix, onChange }: SliderProps)
   );
 }
 
-export default function Settings({ open, value, onChange, onClose, onHide, onQuit }: SettingsProps): JSX.Element | null {
+export default function Settings({
+  open,
+  value,
+  onChange,
+  onClose,
+  onHide,
+  onQuit,
+  hiddenCount = 0,
+  onRestoreHidden,
+}: SettingsProps): JSX.Element | null {
   const [slowDraft, setSlowDraft] = useState(String(value.slowSec));
   const [stuckDraft, setStuckDraft] = useState(String(value.stuckSec));
 
@@ -246,6 +259,27 @@ export default function Settings({ open, value, onChange, onClose, onHide, onQui
               label="待确认提醒"
               onToggle={(v) => patch({ notifyAttention: v })}
             />
+          </div>
+        </section>
+
+        <section className="st-group">
+          <h3 className="st-group-title">任务</h3>
+          <div className="st-row">
+            <span className="st-label">已隐藏</span>
+            <div className="st-inline">
+              <span className="st-inline-val">{hiddenCount} 个</span>
+              <button
+                type="button"
+                className="st-action st-action-sm"
+                disabled={hiddenCount === 0 || !onRestoreHidden}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRestoreHidden?.();
+                }}
+              >
+                恢复
+              </button>
+            </div>
           </div>
         </section>
 

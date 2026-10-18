@@ -462,3 +462,29 @@
   border-color: #e0503f !important;
   background: #fff6f4 !important;
 }
+
+
+/* 行内小按钮（已隐藏任务 · 恢复） */
+.st-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.st-inline-val {
+  font: 500 12px/1 ui-monospace, "SF Mono", Menlo, monospace;
+  color: #86868b;
+}
+
+.st-action-sm {
+  flex: 0 0 auto;
+  width: auto;
+  height: 26px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.st-action-sm:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

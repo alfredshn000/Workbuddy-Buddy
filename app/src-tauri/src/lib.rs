@@ -3,11 +3,14 @@ pub mod model;
 pub mod watcher;
 
 use std::sync::atomic::{AtomicBool, Ordering};
+
+/// 启动时带 BUDDY_RESET_HIDDEN=1 则置位，前端挂载后主动来取一次
+static RESET_PENDING: AtomicBool = AtomicBool::new(false);
 use std::sync::Mutex;
 use std::time::Duration;
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, Manager, PhysicalPosition};
+use tauri::{AppHandle, Emitter, Manager, PhysicalPosition};
 use tauri_plugin_autostart::MacosLauncher;
 
 /// 前端上报的可交互区域：一个圆（球体）+ 若干矩形（气泡、面板等）。
@@ -43,6 +46,22 @@ static AUTOHIDE: AtomicBool = AtomicBool::new(false);
 #[tauri::command]
 fn set_fullscreen_autohide(enabled: bool) {
     AUTOHIDE.store(enabled, Ordering::Relaxed);
+}
+
+/// 前端挂载后调用：一次性读取并清除「待重置」标记
+#[tauri::command]
+fn take_reset_hidden() -> bool {
+    RESET_PENDING.swap(false, Ordering::Relaxed)
+}
+
+#[tauri::command]
+fn set_autostart(app: AppHandle, enabled: bool) {
+    use tauri_plugin_autostart::ManagerExt;
+    let manager = app.autolaunch();
+    let current = manager.is_enabled().unwrap_or(false);
+    if current != enabled {
+        let _ = if enabled { manager.enable() } else { manager.disable() };
+    }
 }
 
 #[tauri::command]
@@ -253,7 +272,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             set_hit_region,
             set_fullscreen_autohide,
-            quit_app
+            quit_app,
+            take_reset_hidden,
+            set_autostart
         ])
         .setup(|app| {
             if let Some(win) = app.get_webview_window("main") {
@@ -271,6 +292,11 @@ pub fn run() {
                     ));
                 }
                 let _ = win.show();
+            }
+
+            // 排障入口：BUDDY_RESET_HIDDEN=1 启动时清空「已删除任务」列表
+            if std::env::var("BUDDY_RESET_HIDDEN").is_ok() {
+                RESET_PENDING.store(true, Ordering::Relaxed);
             }
 
             build_tray(app.handle())?;

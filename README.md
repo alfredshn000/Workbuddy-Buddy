@@ -1,122 +1,57 @@
-# workbuddy-buddy
+# WorkBuddy Buddy
 
-WorkBuddy 的桌面助手 — 一个常驻屏幕角落的光泽小球，替你盯住正在跑的任务。
+> 桌面上的一颗球，替你看住 WorkBuddy 正在跑的任务。
 
-它在本地只读地观察 WorkBuddy（`~/.workbuddy`）：有几个任务在跑、正在调什么工具、积分怎么掉、哪个卡住了、哪个跑完了。
-**不联网、不写你的任何数据、不上传任何内容。**
+一颗带光环的光泽球常驻屏幕：干活时是青的，等你确认时是琥珀的，卡住了变红，做完变绿。有任务在跑时，旁边会多出小卫星——每颗卫星是一个并行会话，环色就是它自己的状态。积分一消耗，数字就从对应那颗卫星上浮起来，1.7 秒后渐隐。
 
-形态：光泽球体，六种状态靠光环颜色区分 —— 待命（灰）/ 工作中（青）/ 待确认（琥珀）/ 卡住（红）/ 完成（绿）/ 断开（灰暗）。
-积分变动以浮动数字出现在球体正上方：**新增绿色 `+xxx`，消耗蓝色 `-xxx`**，1.7 秒后上浮渐隐。
+Tauri 2 · Rust + React 19 · 安装包 2.8MB · 常驻内存约 60MB
 
-## 现在是什么状态
+## 安装
 
-| 阶段 | 内容 | 状态 |
+| 方式 | 文件 | 说明 |
 |---|---|---|
-| M1 | 本地数据探针 + 数据契约冻结 | ✅ 可运行（`probe/`） |
-| M2 | Tauri 2 悬浮窗 + 球体渲染 + 真实事件 | ✅ 可运行（`app/`） |
-| M3 | 卡住判定 + 完成提醒 | ✅ 判定已实现（Rust `judge.rs`，8 个单测） |
-| M4 | 托盘 / 设置 / 开机自启 | 部分（设置面板已做，托盘待做） |
-| M5 | 双平台打包发布 | 待开发 |
+| 安装包 | `Buddy_0.1.0_x64-setup.exe` | 双击安装到 `%LOCALAPPDATA%\Programs\Buddy`，**不需要管理员** |
+| 便携版 | `buddy-windows-portable.zip` | 解压后双击 `install.cmd`，同样装到 LOCALAPPDATA 并建快捷方式 |
 
-## 跑起来
+首次运行 Windows 会提示「未知发布者」，点「更多信息 → 仍要运行」——本项目没有购买代码签名证书。
 
-```bash
-# 只跑前端（mock 数据，浏览器里看效果）
-cd app && npm install && npm run dev      # http://localhost:5273
+卸载：安装目录里的 `uninstall.cmd`，或在「设置 → 应用」里卸载。
 
-# 跑成桌面应用（真数据，透明置顶窗）
-cd app && npm run tauri dev
-```
+## 使用
 
-`npm run tauri dev` 会启动 Rust 采集线程，只读 `~/.workbuddy`，把真实会话与积分变动推给球体。
+- **左键点球**：任务面板（按 待确认 / 卡住 / 进行中 / 已完成 分组）
+- **按住拖动**：换位置
+- **右键球**：设置
+- **进入全屏**（游戏 / 视频 / PPT）：自动隐藏，退出全屏自动回来
+- **托盘图标**：显示隐藏、开机自启、退出
 
-## 打包与分发
+面板里每行悬停有 `×`，删除后不再出卫星也不再提示。
 
-两种产物，对应两种使用习惯：
+## 隐私
 
-| 方式 | 产物 | 安装 | 适合 |
-|---|---|---|---|
-| **安装包** | `Buddy_0.1.0_x64-setup.exe`（约 2.8MB） | 双击装到 `%LOCALAPPDATA%\Programs\Buddy`，**不需要管理员**，自动建开始菜单快捷方式与卸载项 | 普通用户 |
-| **便携包** | `buddy-windows-portable.zip`（约 5.3MB） | 解压后双击 `install.cmd`，同样装到 LOCALAPPDATA 并建快捷方式；删目录即卸载 | 想看清装了什么、或放 U 盘 |
+只读 `~/.workbuddy` 下的本地数据（SQLite + trace + 日志），**不写、不联网、不登录、不上传**。没有账号体系，没有遥测。设置只存在本机。
 
-```bash
-npm run build:app         # 出 NSIS 安装包（release + LTO，约 5~6 分钟）
-npm run package:portable  # 组装便携包到 release/buddy-windows-portable
-```
+## 判定规则
 
-产物位置：
-- 安装包 `app/src-tauri/target/release/bundle/nsis/`
-- 便携包 `release/buddy-windows-portable/`（打 zip：`tar -a -c -f release/buddy-windows-portable.zip -C release buddy-windows-portable`）
+不是靠超时猜的。同时看四路信号：会话状态、当前执行的工具、工具跑了多久、积分还在不在动。工具超时按类型给基线，再用该工具的历史耗时自适应调整——编译这种本来就慢的活不会被误报成卡死。
 
-**没有代码签名**：首次运行会有 SmartScreen「未知发布者」提示，点「更多信息 → 仍要运行」。这与 CrossPet 等情况一致——签名证书是付费项。
+WorkBuddy 弹出权限询问时，直接判定为「等你确认」，而不是「卡住」。
 
-**退出后怎么再打开**：开始菜单搜「Buddy」、双击安装目录里的 `Buddy.exe`，或在托盘菜单里勾选「开机自启」让它随系统启动。设置里的「隐藏」只是藏窗口（进程还在），「退出」才是结束进程。
+超过 60 分钟没有活动的会话不再出卫星（仍留在面板里）。
 
-M1 只做一件事：**证明数据拿得到、语义没猜错**。在契约没冻结前写 UI 是给自己挖坑。
-
-## 技术栈
-
-| 层 | 选型 | 理由 |
-|---|---|---|
-| 外壳 | Tauri 2（Rust + 系统 WebView） | 安装包 8–12MB，常驻 50–70MB |
-| 采集 | Rust：`rusqlite`(bundled) + `notify` + 文件轮询 | 采集独立于渲染线程，前端卡死不丢数据 |
-| 渲染 | React 19 + Vite + TS + 位图精灵（@2x/@3x PNG）+ CSS 合成 | 球体/光晕分层，状态只换颜色与精灵 |
-| 存储 | 仅一个 `settings.json` | 无数据库、无后台服务 |
-| 探针 | Node 22 内置 `node:sqlite`，零依赖 | 只用于 M1 验证，不进产物 |
-
-## 数据来源（全部只读）
-
-| 源 | 作用 |
-|---|---|
-| `sessions/<pid>.json` | 进程存活 / 心跳 |
-| `<uid>/sidebar-list-snapshot.json` | 任务列表主状态 `working/idle/terminated` |
-| `workbuddy.db`（WAL） | `sessions` 状态 + `session_usage.credit_json` 积分流水 |
-| `traces/<pid>/*.jsonl` | 工具级 span，用于卡住判定与气泡文案 |
-| `tasks/<sessionId>/*.json` | todo 完成度 n/m |
-
-字段语义与已知坑：[`docs/02-data-contract.md`](docs/02-data-contract.md)
-设计决策记录：[`docs/01-decisions.md`](docs/01-decisions.md)
-
-## 快速开始（M1 探针）
-
-需要 Node ≥ 22.5（用内置 `node:sqlite`，**零依赖，不用 npm install**）。
+## 开发
 
 ```bash
-npm run probe                    # 打一张快照表
-npm run probe:json               # 机器可读
-node probe/probe.mjs --watch=1000   # 持续观察，只输出事件
-node probe/probe.mjs --since=60      # 只看最近 60 分钟活跃的会话
+npm --prefix app install
+npm --prefix app run dev            # 浏览器里跑（mock 数据）
+npm --prefix app run tauri dev      # 桌面端（读真实数据）
+npm --prefix app run tauri build -- --bundles nsis   # 出安装包
+npm --prefix app test               # 前端 20 项单测
+cargo test --manifest-path app/src-tauri/Cargo.toml --lib   # Rust 12 项
 ```
 
-事件长这样（真实抓取）：
-
-```
-[11:10:21] + 积分 +0.18  本轮 21.9  累计 456.2  检查单页构建版本未更新
-[11:10:23] ~ 确认DeepSeek版本与视频…  空闲 → generation
-[11:12:04] * 检查单页构建版本未更新  slow → stuck  (静默 3m08)
-```
-
-## M1 验收清单
-
-- [x] 只读打开 `workbuddy.db`（WAL）不触发写锁，单次查询 < 1ms（实测 0.02ms）
-- [x] 四源合并出「会话 → 状态 → 当前工具 → 进度 → 积分」一条链路
-- [x] 积分按 `Σ` 差分，能算出增量与本轮花费（实测事件流 3~10s 一跳）
-- [x] 未闭合 span 可定位到具体工具名与持续时长（实测抓到 `Bash 4s` / `mcp_tools → 空闲`）
-- [x] 存活判定改为 pid 级探测（心跳不定期，30s 阈值会误判全量 offline）
-- [x] 状态源优先级纠正（sidebar 快照滞后 5~15 分钟，不能当实时源）
-- [x] 超时基线分工具（统一 60s 会把自己的 55s 命令误判成卡住）
-- [x] `SQLITE_BUSY` 时保留旧基线（否则积分增量永久失效）
-- [ ] 连续跑 24h，确认无 schema 漂移、无文件句柄泄漏
-- [ ] 覆盖空状态（WorkBuddy 未启动 / 无任何会话）
-
-已踩到的坑与修正过程：[`docs/02-data-contract.md`](docs/02-data-contract.md#实测修正记录m1-首跑踩到的两个坑)
-
-## 边界
-
-- **只读**：不写 `~/.workbuddy` 下任何文件，不 checkpoint WAL，不建表。
-- **单机**：不做多机聚合，不接云端。
-- **余额不是本地数据**：本地只有已消耗量，没有剩余额度。UI 展示「本次消耗 / 今日累计 / 燃速」，余额需可插拔 provider（M4 之后再谈）。
+目录：`app/`（前端 + Tauri）、`assets/`（Blender 渲染素材）、`docs/`（数据契约与设计）、`packaging/`（安装脚本）、`probe/`（数据探针，开发用）。
 
 ## 许可
 
-MIT。像素素材将全部自绘并以 CC0 发布，不使用任何第三方版权精灵图。
+MIT

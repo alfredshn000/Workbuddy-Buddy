@@ -7,6 +7,17 @@ export function inTauri(): boolean {
 
 export type Unlisten = () => void;
 
+/** 排障：启动时带 BUDDY_RESET_HIDDEN=1，前端挂载后主动取一次标记 */
+export async function takeResetHidden(): Promise<boolean> {
+  if (!inTauri()) return false;
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    return await invoke<boolean>('take_reset_hidden');
+  } catch {
+    return false;
+  }
+}
+
 /**
  * 订阅 Rust 采集层推来的事件。
  * 事件名固定为 `buddy://event`，payload 与 `events.ts` 的 BuddyEvent 一致。
@@ -100,6 +111,17 @@ export async function quitApp(): Promise<void> {
     await invoke('quit_app');
   } catch (err) {
     console.warn('[bridge] 退出失败', err);
+  }
+}
+
+/** 开机自启：真正写入系统（HKCU Run） */
+export async function setAutostart(enabled: boolean): Promise<void> {
+  if (!inTauri()) return;
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    await invoke('set_autostart', { enabled });
+  } catch (err) {
+    console.warn('[bridge] 设置开机自启失败', err);
   }
 }
 
