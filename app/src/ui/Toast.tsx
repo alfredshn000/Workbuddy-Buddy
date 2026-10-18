@@ -37,7 +37,7 @@ export default function Toast({ items, onDismiss, onActivate }: ToastProps): JSX
       {items.slice(-MAX_VISIBLE).map((item) => (
         <div
           key={item.id}
-          className="toast"
+          className={`toast${onActivate ? ' is-clickable' : ''}`}
           onClick={onActivate ? () => onActivate(item) : undefined}
         >
           <span className="toast-bar" style={{ background: KIND_COLOR[item.kind] }} aria-hidden="true" />

@@ -21,6 +21,7 @@ import {
   setFullscreenAutohide,
   takeResetHidden,
   setAutostart,
+  openTaskbarSettings,
   setTrayTooltip,
   onOpenSettings,
   onAutostartChanged,
@@ -266,9 +267,9 @@ export default function App() {
       const before = prev.get(t.id);
       if (before && before !== t.state) {
         if (t.state === 'completed' && settings.notifyDone) {
-          pushToast('done', `「${t.title}」已完成`, '点击回到对应会话');
+          pushToast('done', `「${t.title}」已完成`, '不需要你操作');
         } else if (t.state === 'attention' && settings.notifyAttention) {
-          pushToast('attention', `「${t.title}」等你确认`, '流程被阻塞，需要你点一下');
+          pushToast('attention', `「${t.title}」等你确认`, '在 WorkBuddy 里确认后自动恢复');
         } else if (t.state === 'stalled') {
           pushToast('stalled', `「${t.title}」卡住了`, '长时间没有进展');
         }
@@ -335,11 +336,16 @@ export default function App() {
     const ballR = (r.width * (200 / 260)) / 2 + 8;
 
     const rects: number[][] = [];
-    const bubbleEl = document.querySelector('.bubble-anchor .bubble-wrap') as HTMLElement | null;
-    if (bubbleEl) {
-      const b = bubbleEl.getBoundingClientRect();
-      rects.push([b.left - 6, b.top - 6, b.width + 12, b.height + 12]);
-    }
+    const addRect = (el: Element, pad = 6) => {
+      const b = el.getBoundingClientRect();
+      if (b.width === 0 || b.height === 0) return;
+      rects.push([b.left - pad, b.top - pad, b.width + pad * 2, b.height + pad * 2]);
+    };
+    const bubbleEl = document.querySelector('.bubble-anchor .bubble-wrap');
+    if (bubbleEl) addRect(bubbleEl);
+
+    // 通知卡也要可点（× 关闭），否则窗口处于穿透状态时点不动
+    document.querySelectorAll('.toast-stack .toast').forEach((el) => addRect(el, 4));
 
     const key = [
       Math.round(cx),
@@ -515,7 +521,7 @@ export default function App() {
           <Bubble
             text={bubbleText}
             tone={bubble.tone}
-            onClose={() => setDismissedBubble(bubble.text)}
+            onClose={() => setDismissedBubble(bubbleKey)}
           />
         </div>
       )}
@@ -548,6 +554,9 @@ export default function App() {
             onRestoreHidden={() => {
               setHidden([]);
               saveHidden([]);
+            }}
+            onOpenTaskbarSettings={() => {
+              void openTaskbarSettings();
             }}
           />
         </div>

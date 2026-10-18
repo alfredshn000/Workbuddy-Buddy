@@ -86,6 +86,17 @@ fn apply_autostart(app: &AppHandle, enabled: bool, from_frontend: bool) {
     }
 }
 
+/// 打开 Windows「任务栏设置」，方便把托盘图标从溢出区固定出来
+#[tauri::command]
+fn open_taskbar_settings() {
+    #[cfg(windows)]
+    {
+        let _ = std::process::Command::new("cmd")
+            .args(["/C", "start", "", "ms-settings:taskbar"])
+            .spawn();
+    }
+}
+
 #[tauri::command]
 fn quit_app(app: AppHandle) {
     app.exit(0);
@@ -316,11 +327,13 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
             _ => {}
         });
 
+    let has_icon = app.default_window_icon().is_some();
     if let Some(icon) = app.default_window_icon() {
         builder = builder.icon(icon.clone());
     }
 
     builder.build(app)?;
+    let _ = has_icon;
     Ok(())
 }
 
@@ -337,7 +350,8 @@ pub fn run() {
             quit_app,
             take_reset_hidden,
             set_autostart,
-            set_tray_tooltip
+            set_tray_tooltip,
+            open_taskbar_settings
         ])
         .setup(|app| {
             if let Some(win) = app.get_webview_window("main") {

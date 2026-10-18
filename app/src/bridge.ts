@@ -139,6 +139,17 @@ export async function quitApp(): Promise<void> {
   }
 }
 
+/** 打开系统「任务栏设置」 */
+export async function openTaskbarSettings(): Promise<void> {
+  if (!inTauri()) return;
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    await invoke('open_taskbar_settings');
+  } catch (err) {
+    console.warn('[bridge] 打开任务栏设置失败', err);
+  }
+}
+
 /** 开机自启：真正写入系统（HKCU Run） */
 export async function setAutostart(enabled: boolean): Promise<void> {
   if (!inTauri()) return;

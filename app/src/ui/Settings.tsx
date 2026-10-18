@@ -16,6 +16,8 @@ export interface SettingsProps {
   hiddenCount?: number;
   /** 恢复被删除的任务 */
   onRestoreHidden?: () => void;
+  /** 打开系统任务栏设置（把托盘图标固定出来） */
+  onOpenTaskbarSettings?: () => void;
 }
 
 const SCALE_OPTIONS: ReadonlyArray<Settings['scale']> = [1, 2, 3];
@@ -91,6 +93,7 @@ export default function Settings({
   onQuit,
   hiddenCount = 0,
   onRestoreHidden,
+  onOpenTaskbarSettings,
 }: SettingsProps): JSX.Element | null {
   const [slowDraft, setSlowDraft] = useState(String(value.slowSec));
   const [stuckDraft, setStuckDraft] = useState(String(value.stuckSec));
@@ -294,17 +297,30 @@ export default function Settings({
             />
           </div>
           <div className="st-row">
-            <span className="st-label">全屏时降低存在感</span>
+            <span className="st-label">托盘图标</span>
+            <button
+              type="button"
+              className="st-action st-action-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenTaskbarSettings?.();
+              }}
+            >
+              固定到任务栏
+            </button>
+          </div>
+          <div className="st-row">
+            <span className="st-label">全屏时自动隐藏</span>
             <Switch
               checked={value.autoHideFullscreen}
-              label="全屏时降低存在感"
+              label="全屏时自动隐藏"
               onToggle={(v) => patch({ autoHideFullscreen: v })}
             />
           </div>
         </section>
       </div>
 
-      <div className="st-foot">开机自启需桌面端支持，当前仅保存偏好</div>
+      <div className="st-foot">全屏检测覆盖游戏、视频、PPT 与网页全屏</div>
 
       <div className="st-footer">
         <button
